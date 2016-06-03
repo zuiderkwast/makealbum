@@ -29,18 +29,20 @@ REMOTE_DIR=/home/viktor/foo
 
 .PHONY: all scale upload
 
-ORIG_PICS:=$(notdir $(shell ls -t $(ORIG_DIR)/*.???))
+ORIG_PICS:=$(shell ls -t $(ORIG_DIR) | grep -i '\.jpg')
 LARGE_PICS:=$(foreach p,$(ORIG_PICS),$(LARGE_SIZE).$(p))
 SMALL_PICS:=$(foreach p,$(ORIG_PICS),$(SMALL_SIZE).$(p))
-SCALED_PICS:=$(LARGE_PICS) $(SMALL_PICS)
+SCALED_PICS:=$(foreach p,$(ORIG_PICS),$(LARGE_SIZE).$(p) $(SMALL_PICS).$(p))
 
-all: scale upload
+all: scale
+	@$(MAKE) --no-print-directory upload
 
 scale: $(SCALED_PICS)
 
+upload: RSYNC_EXCLUDE=--exclude='.*' --exclude=Makefile --exclude=README.md --exclude='*.html'
 upload:
 	@echo Uploading...
-	@rsync -tv $(SCALED_PICS) album.pl '$(REMOTE_USER)@$(REMOTE_HOST):$(REMOTE_DIR)'
+	@rsync -tvr $(RSYNC_EXCLUDE) ./ '$(REMOTE_USER)@$(REMOTE_HOST):$(REMOTE_DIR)'
 	@echo Generating album on server...
 	@ssh $(REMOTE_USER)@$(REMOTE_HOST) "cd '$(REMOTE_DIR)'; perl album.pl"
 

@@ -8,7 +8,6 @@
 # without any warranty.
 
 use strict;
-use Data::Dumper;
 
 # How to tell large images from their thumbnails
 my $MIN_W = 600;
@@ -20,9 +19,9 @@ my @MONTH_NAMES = qw(Januari Februari Mars April Maj Juni Juli
 my $NEXT_STR = "Nästa";
 my $PREV_STR = "Föregående";
 my $ALL_STR  = $ALBUM_TITLE; # "Alla"
+my $FULLSCREEN = "Fullskärm";
 
 my $data = get_file_data();
-#print Dumper($data);
 
 write_monthly_and_single_pages($data);
 write_index_file($data);
@@ -98,8 +97,6 @@ sub write_single_pic_pages {
 			         "<img alt='preload' src='$large' width='15' height='15'>" .
 			         " $PREV_STR</a></li>\n";
 		}
-		# Link to index
-		print $f "<li><a href=\"$month.html\">&uarr; $month</a></li>\n";
 
 		if ($next_info) {
 			# Link to next img
@@ -109,6 +106,12 @@ sub write_single_pic_pages {
 			         "<img alt='preload' src='$large' width='15' height='15'>" .
 			         " $NEXT_STR</a></li>\n";
 		}
+
+		# Link to month overview
+		print $f "<li><a href=\"$month.html\">&uarr; $month</a></li>\n";
+
+		fullsceen_link($f);
+
 		print $f "</ol></nav>\n";
 
 		print $f "</body></html>\n";
@@ -152,13 +155,15 @@ sub write_month_page {
 		# Link to prev month
 		print $f "<li><a href=\"$prev_month.html\">&larr; $prev_month</a></li>\n";
 	}
-	# Link to index
-	print $f "<li><a href=\"index.html\">&uarr; $ALL_STR</a></li>\n";
 
 	if ($next_month) {
 		# Link to next month
 		print $f "<li><a href=\"$next_month.html\">&rarr; $next_month</a></li>\n";
 	}
+
+	# Link to index
+	print $f "<li><a href=\"index.html\">&uarr; $ALL_STR</a></li>\n";
+
 	print $f "</ol></nav>\n";
 
 	# Main heading
@@ -227,5 +232,23 @@ sub fheader {
   </style>
  </head>
  <body>
+END
+}
+
+sub fullsceen_link {
+	my ($f) = @_;
+	# Fullsceen stops when a link is clicked. We need to load next pic using JS.
+	# http://stackoverflow.com/questions/824349/modify-the-url-without-reloading-the-page
+	print $f <<END;
+<script type="text/javascript">
+var el = document.documentElement,
+    rfs =  el.requestFullScreen || el.webkitRequestFullScreen
+        || el.mozRequestFullScreen || el.msRequestFullscreen;
+if (typeof rfs != "undefined" && rfs) {
+  document.writeln(
+    "<li><a href='javascript:void(0)' onclick='rfs.call(el);return false;'>$FULLSCREEN</a></li>"
+  );
+}
+</script>
 END
 }

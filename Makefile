@@ -29,17 +29,25 @@ REMOTE_DIR=/home/viktor/foo
 
 .PHONY: all scale upload
 
-ORIG_PICS:=$(shell ls -t $(ORIG_DIR) | grep -i '\.jpg')
+ORIG_PICS:=$(notdir $(wildcard $(ORIG_DIR)/*.jpg) $(wildcard $(ORIG_DIR)/*.JPG))
 LARGE_PICS:=$(foreach p,$(ORIG_PICS),$(LARGE_SIZE).$(p))
 SMALL_PICS:=$(foreach p,$(ORIG_PICS),$(SMALL_SIZE).$(p))
-SCALED_PICS:=$(foreach p,$(ORIG_PICS),$(LARGE_SIZE).$(p) $(SMALL_PICS).$(p))
+
+# Verbosity
+V=0
+ifeq "0" "$V"
+v=>/dev/null
+else
+v=
+endif
 
 all: scale
 	@$(MAKE) --no-print-directory upload
 
-scale: $(SCALED_PICS)
+scale: $(SMALL_PICS) $(LARGE_PICS)
 
-upload: RSYNC_EXCLUDE=--exclude='.*' --exclude=Makefile --exclude=README.md --exclude='*.html'
+upload: RSYNC_EXCLUDE=--exclude='.*' --exclude=Makefile --exclude=README.md\
+ --exclude='*.html' --exclude='*.sh'
 upload:
 	@echo Uploading...
 	@rsync -tvr $(RSYNC_EXCLUDE) ./ '$(REMOTE_USER)@$(REMOTE_HOST):$(REMOTE_DIR)'
@@ -47,10 +55,12 @@ upload:
 	@ssh $(REMOTE_USER)@$(REMOTE_HOST) "cd '$(REMOTE_DIR)'; perl album.pl"
 
 $(LARGE_SIZE).%: $(ORIG_DIR)/%
+	@echo Scaling $@ $v
 	@convert $< -resize $(LARGE_SIZE) $@
 	@touch --reference=$< $@
 
 $(SMALL_SIZE).%: $(ORIG_DIR)/%
+	@echo Scaling thumbnail $@ $v
 	@convert $< -resize $(SMALL_SIZE) $@
 	@touch --reference=$< $@
 

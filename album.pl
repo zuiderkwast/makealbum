@@ -52,9 +52,13 @@ sub get_file_data {
 		# permissions owner group size YYYY-MM name
 		# ^\S*\s+\d+\s+\d+\s+\d+\s+
 		next if !/(\d+-\d+)\s+((\d+)x(\d+)\.(.*))$/;
-		my ($month, $name, $width, $height, $basename) = ($1, $2, $3, $4, $5, $6);
+		my ($month, $name, $width, $height, $basename) = ($1, $2, $3, $4, $5);
 		if ($width >= $MIN_W or $height >= $MIN_H) {
 			# it's a large image
+			my $ts_stuff = `exiv2 $name | grep '^Image tim'`;
+			if ($ts_stuff =~ /^Image timestamp\s*:\s*(\d+):(\d+):/) {
+				$month = "$1-$2";
+			}
 			$info_per_file->{$basename}{"large"} = $name;
 			$info_per_file->{$basename}{"month"} = $month;
 			$info_per_file->{$basename}{"orig"} = $basename;
@@ -107,8 +111,9 @@ sub write_single_pic_pages {
 			         " $NEXT_STR</a></li>\n";
 		}
 
-		# Link to month overview
+		# Link to month overview and index
 		print $f "<li><a href=\"$month.html\">&uarr; $month</a></li>\n";
+		print $f "<li><a href=\"index.html\">&uarr;&uarr; $ALL_STR</a></li>\n";
 
 		fullsceen_link($f);
 
@@ -193,9 +198,10 @@ sub write_index_file {
 	print $f "<h1>$ALBUM_TITLE</h1>\n";
 	my $last_year = 0;
 	for (@months) {
-		/^(\d+)-(\d+)$/ or die("Oj, en bugg.\n");
 		my $thismonth = $filedata->{$_};
 		my $n = @$thismonth;
+		next if $n == 0;
+		/^(\d+)-(\d+)$/ or die("Failed to identify year and month for $n files.\n");
 		my $year = $1;
 		my $month = $2;
 		if ($year != $last_year) {
